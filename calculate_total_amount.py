@@ -3,18 +3,37 @@ Phantom Logs - calculate total amount of verified transactions.
 """
 
 from pathlib import Path
+from pathlib import Path
 from typing import Optional
 from PIL import Image
 
+import os
 import csv
 import json
 import base62
+import tarfile
 
 
 # Paths
-LOGS_DIR = Path("logs")
-MANIFEST_PATH = Path("manifest.csv")
-IMAGE_PATH = Path("server_room.png")
+LOGS_ARCHIVE = Path(os.getenv("LOGS_DIR", "logs.tar.gz"))
+LOGS_DIR = Path(os.getenv("LOGS_DIR", "logs"))
+MANIFEST_PATH = Path(os.getenv("MANIFEST_PATH", "manifest.csv"))
+IMAGE_PATH = Path(os.getenv("IMAGE_PATH", "server_room.png"))
+
+
+def extract_logs():
+    """Extract logs from tar.gz if logs directory doesn't exist."""
+    if LOGS_DIR.exists() and any(LOGS_DIR.iterdir()):
+        return  
+    
+    if not LOGS_ARCHIVE.exists():
+        raise FileNotFoundError(f"Neither {LOGS_DIR} nor {LOGS_ARCHIVE} found")
+    
+    print(f"Extracting {LOGS_ARCHIVE}...")
+    with tarfile.open(LOGS_ARCHIVE, "r:gz") as tar:
+        tar.extractall(path=".")  
+    print("Extraction complete.")
+
 
 def get_file_dir(tran_id):
     """Get path for every log."""
@@ -69,8 +88,9 @@ def parse_json(blob: bytes) -> Optional[dict]:
 
     
 def main():
-    total_amout = 0
+    total_amount = 0
     secret_key = get_secret_key()
+    extract_logs() 
 
     with open(MANIFEST_PATH, "r") as f:
         reader = csv.DictReader(f)
@@ -88,13 +108,13 @@ def main():
                         decrypted_data = xor_decrypt(content,secret_key)
                         json_data = parse_json(decrypted_data)
                         
-                        total_amout += json_data.get("amount", 0)
+                        total_amount += json_data.get("amount", 0)
 
                 except Exception as e:
                     print(f"Error reading {file_path.name}: {e}")
 
 
-    print(f"TOTAL_AMOUNT: {round(total_amout, 2)}")
+    print(f"TOTAL_AMOUNT: {round(total_amount, 2)}")
 
 
 

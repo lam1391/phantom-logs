@@ -2,7 +2,7 @@
 
 ## Solution
 
-**Final Sum: 50016.45**
+**Final Sum: 50431.73**
 
 ## How to Run
 
