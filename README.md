@@ -1,36 +1,48 @@
-# Case: The Phantom Logs
+# Phantom Logs - Solution
 
-## Scenario
-We are auditing a compromised payment gateway. A full set of transaction logs (`logs.tar.gz`) has been recovered alongside a master manifest (`manifest.csv`). 
+## Challenge
+Audit a compromised payment gateway by separating real transactions from "phantom" noise, then calculate the total amount of verified transactions.
 
-However, the system was flooded with "phantom" transactions during the incident. We need to separate the real data from the noise.
+## Solution
 
-## Artifacts
-1.  **`logs.tar.gz`**: Compressed archive containing encrypted transaction files. Filenames correspond to Transaction IDs.
-2.  **`manifest.csv`**: A list of all recorded events, including a verification hash for each.
-3.  **`server_room.png`**: A reference photo from the facility.
+**Final Sum: 50016.45**
 
-## Objective
-Calculate the **Total Amount** of all **verified** transactions.
+- Valid transactions: 186
+- Invalid/corrupted transactions: 114
 
-## Technical Rules
+## How to Run
 
-### 1. Integrity Check (Crucial)
-The `logs.tar.gz` archive contains both valid and corrupted files. You must extract and filter them using the manifest.
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-A transaction is **VALID** only if:
-1.  The `verification_hash` in the manifest matches the **Base62** encoding of the Transaction ID.
+# Run the script
+python calculate_total_amount.py
+```
 
-**Base62 Specification:**
-- Logic: `Transaction ID (String)` -> `UTF-8 Bytes` -> `Big-Endian Integer` -> `Base62 String`.
-- Standard: We use the character set `0-9`, `A-Z`, `a-z` (Reference: https://github.com/suminb/base62).
-* **Warning:** If the hash does not match, the file is corrupted. Its payload might look like valid JSON, but the data is garbage. **Exclude these from the sum.**
+## Approach
 
-### 2. Decryption
-The log files contain JSON payloads. To avoid transmitting plaintext, the system uses a simple **XOR Cipher** (repeating key) to encrypt the data.
-- **Hint:** The decryption key is hidden in the server room. The sign in the image points the way.
-* **Warning:** The corrupted files may have additional garbage information.
+### 1. Transaction Validation
+Each transaction is validated by checking if `Base62(transaction_id)` matches the `verification_hash` in the manifest.
 
-## Deliverable
-- A git repository with your script.
-- The final sum.
+```
+Transaction ID → UTF-8 Bytes → Big-Endian Integer → Base62 String
+```
+
+### 2. Key Discovery
+The hint "The sign in the image points the way" led to the `server_room.png` image, where an "EXIF" sign (styled like an EXIT sign) indicated to check the image metadata.
+
+Using Pillow to read PNG metadata revealed:
+```
+Software: System_Key: GlaDOS
+```
+
+**Decryption key: `GlaDOS`**
+
+### 3. Decryption
+Valid transaction files are decrypted using XOR cipher with the repeating key `GlaDOS`, then parsed as JSON to extract the `amount` field.
+
+## Dependencies
+
+- `pillow` - PNG metadata extraction
+- `pybase62` - Base62 encoding

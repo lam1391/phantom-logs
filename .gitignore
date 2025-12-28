@@ -19,3 +19,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Challenge artifacts (not needed in solution)
+logs/
+logs.tar.gz
+server_room.png
+manifest.csv
